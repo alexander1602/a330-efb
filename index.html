@@ -2,8 +2,10 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A330 Trim EFB</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>A330 EFB</title>
     <style>
         :root {
             --bg-color: #000000;
@@ -14,27 +16,36 @@
             --accent: #0a84ff;
             --accent-hover: #0070e0;
             --success: #30d158;
+            --warning: #ff9f0a;
+            --danger: #ff453a;
         }
         
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            padding-bottom: 90px; /* Spazio per la tab bar */
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Gestione delle Pagine (Views) */
+        .view {
+            display: none;
+            padding: 20px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .view.active {
+            display: block;
         }
 
         .efb-card {
             background-color: var(--card-bg);
-            width: 100%;
-            max-width: 400px;
             border-radius: 24px;
-            padding: 30px;
+            padding: 25px;
+            margin-bottom: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
@@ -46,10 +57,8 @@
             margin-bottom: 25px;
         }
 
-        .input-group {
-            margin-bottom: 20px;
-        }
-
+        .input-group { margin-bottom: 20px; }
+        
         label {
             display: block;
             font-size: 13px;
@@ -69,19 +78,12 @@
             border-radius: 14px;
             box-sizing: border-box;
             outline: none;
-            transition: box-shadow 0.2s;
         }
 
-        input[type="number"]:focus {
-            box-shadow: 0 0 0 2px var(--accent);
-        }
-
-        /* Segmented Control per i Flap */
         .flap-selector {
             display: flex;
             background-color: var(--input-bg);
             border-radius: 12px;
-            overflow: hidden;
             padding: 3px;
         }
 
@@ -95,13 +97,9 @@
             padding: 12px 0;
             border-radius: 10px;
             cursor: pointer;
-            transition: background 0.2s;
         }
 
-        .flap-btn.active {
-            background-color: #3a3a3c;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
+        .flap-btn.active { background-color: #3a3a3c; }
 
         .calc-btn {
             width: 100%;
@@ -114,46 +112,88 @@
             border-radius: 14px;
             margin-top: 10px;
             cursor: pointer;
-            transition: background 0.2s;
         }
 
-        .calc-btn:active {
-            background-color: var(--accent-hover);
-            transform: scale(0.98);
-        }
-
-        /* Box del Risultato */
         .result-box {
             margin-top: 25px;
-            background-color: #1e3a29; /* Sfondo verdognolo stile cockpit */
+            background-color: #1e3a29;
             border-radius: 16px;
             padding: 20px;
             text-align: center;
             display: none;
             border: 1px solid #285438;
         }
-
-        .result-box.show {
-            display: block;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .result-label {
-            color: var(--success);
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-        }
+        .result-box.show { display: block; }
+        
+        .result-box.perf-box { background-color: #1c2c3e; border-color: #2a4868; }
 
         .mcdu-string {
             font-size: 32px;
             font-weight: 700;
-            color: var(--text-main);
             font-family: monospace;
-            letter-spacing: 2px;
-            margin: 0;
+            margin: 5px 0 0 0;
         }
+
+        /* Canvas per il grafico CG */
+        canvas {
+            width: 100%;
+            height: 200px;
+            background-color: var(--input-bg);
+            border-radius: 14px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        /* Tab Bar Inferiore (iOS Style) */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 85px;
+            background-color: rgba(28, 28, 30, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-around;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            padding-top: 5px;
+        }
+
+        .tab-item.active { color: var(--accent); }
+
+        .tab-icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        /* Grid per le Performance */
+        .perf-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .perf-item {
+            background: var(--card-bg);
+            padding: 15px 5px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .perf-val { font-size: 24px; font-weight: 700; font-family: monospace; color: var(--success);}
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -163,90 +203,226 @@
 </head>
 <body>
 
-    <div class="efb-card">
-        <h2>A330 Trim Calculator</h2>
-
-        <div class="input-group">
-            <label>Gross Weight (KG)</label>
-            <input type="number" id="weight" placeholder="es. 168300" inputmode="numeric">
-        </div>
-
-        <div class="input-group">
-            <label>Center of Gravity (CG %)</label>
-            <input type="number" id="cg" placeholder="es. 26.9" step="0.1" inputmode="decimal">
-        </div>
-
-        <div class="input-group">
-            <label>Flap Setting</label>
-            <div class="flap-selector">
-                <button class="flap-btn active" onclick="selectFlap('1', this)">1+F</button>
-                <button class="flap-btn" onclick="selectFlap('2', this)">2</button>
-                <button class="flap-btn" onclick="selectFlap('3', this)">3</button>
+    <div id="view-trim" class="view active">
+        <div class="efb-card">
+            <h2>Weight & Balance</h2>
+            <div class="input-group">
+                <label>Gross Weight (KG)</label>
+                <input type="number" id="weight" placeholder="es. 168300" onchange="syncWeight()">
             </div>
-        </div>
-
-        <button class="calc-btn" onclick="calculateTrim()">Calcola MCDU</button>
-
-        <div class="result-box" id="resultArea">
-            <div class="result-label">Stringa MCDU (THS)</div>
-            <p class="mcdu-string" id="mcduResult">1/UP0.0</p>
+            <div class="input-group">
+                <label>Center of Gravity (CG %)</label>
+                <input type="number" id="cg" placeholder="es. 26.9">
+            </div>
+            <div class="input-group">
+                <label>Flap Setting</label>
+                <div class="flap-selector">
+                    <button class="flap-btn active" onclick="selectFlap('1', this)">1+F</button>
+                    <button class="flap-btn" onclick="selectFlap('2', this)">2</button>
+                    <button class="flap-btn" onclick="selectFlap('3', this)">3</button>
+                </div>
+            </div>
+            <button class="calc-btn" onclick="calculateTrim()">Calcola Trim & CG</button>
+            
+            <div class="result-box" id="trimResultArea">
+                <label style="color: var(--success);">MCDU THS SETTING</label>
+                <p class="mcdu-string" id="mcduResult">1/UP0.0</p>
+            </div>
+            
+            <canvas id="cgCanvas"></canvas>
         </div>
     </div>
+
+    <div id="view-perf" class="view">
+        <div class="efb-card">
+            <h2>Take Off Performance</h2>
+            <div class="input-group">
+                <label>Gross Weight (KG)</label>
+                <input type="number" id="perf-weight" placeholder="Sincronizzato dal Trim">
+            </div>
+            <div class="input-group">
+                <label>OAT (Outside Air Temp °C)</label>
+                <input type="number" id="oat" placeholder="es. 15" value="15">
+            </div>
+            
+            <button class="calc-btn" onclick="calculatePerf()">Calcola V-Speeds</button>
+
+            <div class="result-box perf-box" id="perfResultArea">
+                <label style="color: var(--accent);">V-SPEEDS (KIAS)</label>
+                <div class="perf-grid">
+                    <div class="perf-item">
+                        <label>V1</label>
+                        <div class="perf-val" id="val-v1">140</div>
+                    </div>
+                    <div class="perf-item">
+                        <label>VR</label>
+                        <div class="perf-val" id="val-vr">144</div>
+                    </div>
+                    <div class="perf-item">
+                        <label>V2</label>
+                        <div class="perf-val" id="val-v2">148</div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; text-align: left;">
+                    <label>Thrust Setting</label>
+                    <p class="mcdu-string" id="thrustResult" style="font-size: 22px; color: var(--warning);">FLX 55°C</p>
+                    <label style="margin-top:10px;">Max Reject Speed</label>
+                    <p class="mcdu-string" id="rejectResult" style="font-size: 18px; color: var(--danger);">V1 - 2 KTS</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="tab-bar">
+        <div class="tab-item active" id="tab-trim" onclick="switchView('trim')">
+            <div class="tab-icon">⚖️</div>
+            Trim & CG
+        </div>
+        <div class="tab-item" id="tab-perf" onclick="switchView('perf')">
+            <div class="tab-icon">🚀</div>
+            Takeoff Perf
+        </div>
+    </nav>
 
     <script>
         let currentFlap = '1';
 
-        // Gestisce il cambio visivo e logico dei flap
-        function selectFlap(flapValue, btnElement) {
-            currentFlap = flapValue;
-            
-            // Rimuove la classe attiva da tutti i bottoni
-            let buttons = document.getElementsByClassName('flap-btn');
-            for(let i = 0; i < buttons.length; i++) {
-                buttons[i].classList.remove('active');
-            }
-            // Aggiunge la classe attiva al bottone cliccato
-            btnElement.classList.add('active');
+        // Navigazione tra le tab
+        function switchView(viewName) {
+            document.getElementById('view-trim').classList.remove('active');
+            document.getElementById('view-perf').classList.remove('active');
+            document.getElementById('tab-trim').classList.remove('active');
+            document.getElementById('tab-perf').classList.remove('active');
+
+            document.getElementById('view-' + viewName).classList.add('active');
+            document.getElementById('tab-' + viewName).classList.add('active');
         }
 
-        // Calcola il Trim
+        // Sincronizza il peso tra le due pagine
+        function syncWeight() {
+            document.getElementById('perf-weight').value = document.getElementById('weight').value;
+        }
+
+        function selectFlap(val, btn) {
+            currentFlap = val;
+            let btns = btn.parentElement.children;
+            for(let b of btns) b.classList.remove('active');
+            btn.classList.add('active');
+        }
+
+        // --- LOGICA TRIM & GRAFICO ---
         function calculateTrim() {
-            let cgInput = document.getElementById('cg').value;
-            let cg = parseFloat(cgInput);
+            let weight = parseFloat(document.getElementById('weight').value);
+            let cg = parseFloat(document.getElementById('cg').value);
 
-            if (isNaN(cg) || cg < 15 || cg > 45) {
-                alert("Per favore, inserisci un valore di CG valido (es. 26.9).");
-                return;
-            }
+            if (isNaN(cg) || isNaN(weight)) { alert("Inserisci Peso e CG validi."); return; }
 
-            // Formula A330 (Lineare)
             let ths_raw = 5.7 - (0.2 * cg);
-            
-            // Compensazione Flap
-            if (currentFlap === '2') {
-                ths_raw += 0.2;
-            } else if (currentFlap === '3') {
-                ths_raw += 0.3;
-            }
+            if (currentFlap === '2') ths_raw += 0.2;
+            else if (currentFlap === '3') ths_raw += 0.3;
 
-            // Determina UP o DN
-            let direction = "";
-            if (ths_raw > 0) {
-                direction = "UP";
-            } else if (ths_raw < 0) {
-                direction = "DN";
-            } else {
-                direction = "UP"; // Di default neutro lo mettiamo positivo
-            }
-
+            let direction = ths_raw >= 0 ? "UP" : "DN";
             let ths_val = Math.abs(ths_raw).toFixed(1);
             
-            // Costruisci la stringa per l'MCDU
-            let mcduStr = currentFlap + "/" + direction + ths_val;
+            document.getElementById('mcduResult').innerText = `${currentFlap}/${direction}${ths_val}`;
+            document.getElementById('trimResultArea').classList.add('show');
 
-            // Mostra il risultato con l'animazione
-            document.getElementById('mcduResult').innerText = mcduStr;
-            document.getElementById('resultArea').classList.add('show');
+            drawCGGraph(cg, weight);
+        }
+
+        function drawCGGraph(cg, weight) {
+            let canvas = document.getElementById('cgCanvas');
+            canvas.style.display = "block";
+            let ctx = canvas.getContext('2d');
+            let w = canvas.width = canvas.offsetWidth;
+            let h = canvas.height = 200;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Mappatura assi: X (CG da 15% a 40%), Y (Peso da 100t a 250t)
+            let mapX = (val) => ((val - 15) / 25) * w;
+            let mapY = (val) => h - (((val - 100000) / 150000) * h);
+
+            // Disegna Inviluppo di volo (Poligono approssimativo A330)
+            ctx.fillStyle = "rgba(10, 132, 255, 0.2)"; // Azzurro trasparente
+            ctx.strokeStyle = "rgba(10, 132, 255, 0.8)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(mapX(17), mapY(100000));
+            ctx.lineTo(mapX(17), mapY(180000));
+            ctx.lineTo(mapX(20), mapY(240000));
+            ctx.lineTo(mapX(33), mapY(240000));
+            ctx.lineTo(mapX(37), mapY(100000));
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Disegna il punto esatto dell'utente
+            let userX = mapX(cg);
+            let userY = mapY(weight);
+            
+            ctx.fillStyle = "#ff453a"; // Rosso Apple
+            ctx.beginPath();
+            ctx.arc(userX, userY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Testo sul grafico
+            ctx.fillStyle = "#8e8e93";
+            ctx.font = "10px sans-serif";
+            ctx.fillText("FWD", 10, h - 10);
+            ctx.fillText("AFT", w - 25, h - 10);
+            
+            ctx.fillStyle = "#ffffff";
+            ctx.fillText(`CG: ${cg}%`, userX + 10, userY - 10);
+        }
+
+        // --- LOGICA PERFORMANCE (Stima realistica per simulatore) ---
+        function calculatePerf() {
+            let wInput = document.getElementById('perf-weight').value;
+            let oatInput = document.getElementById('oat').value;
+            
+            if (!wInput) { alert("Inserisci il peso prima."); switchView('trim'); return; }
+
+            let weight = parseFloat(wInput);
+            let oat = parseFloat(oatInput || 15);
+
+            // Stima V-Speeds (Basata su curve A330)
+            // A 170.000 kg, VR tipica è ~144. Ogni 5000kg aggiunge circa 1 nodo.
+            let vr = Math.round(110 + (weight / 5000)); 
+            let v1 = vr - 4; // V1 leggermente inferiore a VR in condizioni dry
+            let v2 = vr + 5; // V2 garantisce margine di sicurezza
+            
+            // Limitazioni fisiche per pesi estremi
+            if (v1 < 120) { v1 = 120; vr = 125; v2 = 130; }
+
+            document.getElementById('val-v1').innerText = v1;
+            document.getElementById('val-vr').innerText = vr;
+            document.getElementById('val-v2').innerText = v2;
+
+            // Calcolo Flex Temp (Assumiamo pista standard)
+            // Più sei pesante o più fa caldo, più ti avvicini a TOGA (Take Off Go Around)
+            let thrustStr = "";
+            let rejectStr = `Circa ${v1 - 2} KTS`;
+
+            if (weight > 225000) {
+                thrustStr = "TOGA (Too Heavy)";
+                document.getElementById('thrustResult').style.color = "var(--danger)";
+            } else {
+                // Calcolo empirico FLX
+                let flx = Math.round(75 - ((weight - 140000) / 2500) - (oat / 2));
+                if (flx <= oat || flx < 40) {
+                    thrustStr = "TOGA (Use Max Thrust)";
+                    document.getElementById('thrustResult').style.color = "var(--danger)";
+                } else {
+                    thrustStr = `FLX ${flx}°C`;
+                    document.getElementById('thrustResult').style.color = "var(--warning)";
+                }
+            }
+
+            document.getElementById('thrustResult').innerText = thrustStr;
+            document.getElementById('rejectResult').innerText = rejectStr;
+
+            document.getElementById('perfResultArea').classList.add('show');
         }
     </script>
 </body>
