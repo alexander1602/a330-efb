@@ -26,35 +26,61 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0;
             padding: 0;
-            padding-bottom: 90px; /* Spazio per la tab bar */
+            padding-bottom: 90px;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Gestione delle Pagine (Views) */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* Layout a due colonne per schermi grandi (iPad/Desktop) */
+        .split-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .split-layout {
+                flex-direction: row;
+                align-items: stretch;
+            }
+            .left-panel {
+                flex: 1;
+                max-width: 45%;
+            }
+            .right-panel {
+                flex: 1.2;
+                display: flex;
+                flex-direction: column;
+            }
+        }
+
         .view {
             display: none;
             padding: 20px;
             animation: fadeIn 0.3s ease-out;
         }
-        .view.active {
-            display: block;
-        }
+        .view.active { display: block; }
 
         .efb-card {
             background-color: var(--card-bg);
             border-radius: 24px;
             padding: 25px;
-            margin-bottom: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
         h2 {
             margin-top: 0;
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 600;
             text-align: center;
             margin-bottom: 25px;
+            color: var(--text-main);
+            letter-spacing: 0.5px;
         }
 
         .input-group { margin-bottom: 20px; }
@@ -78,7 +104,10 @@
             border-radius: 14px;
             box-sizing: border-box;
             outline: none;
+            transition: box-shadow 0.2s;
         }
+
+        input[type="number"]:focus { box-shadow: 0 0 0 2px var(--accent); }
 
         .flap-selector {
             display: flex;
@@ -99,7 +128,7 @@
             cursor: pointer;
         }
 
-        .flap-btn.active { background-color: #3a3a3c; }
+        .flap-btn.active { background-color: #3a3a3c; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
         .calc-btn {
             width: 100%;
@@ -114,6 +143,8 @@
             cursor: pointer;
         }
 
+        .calc-btn:active { transform: scale(0.98); }
+
         .result-box {
             margin-top: 25px;
             background-color: #1e3a29;
@@ -124,7 +155,6 @@
             border: 1px solid #285438;
         }
         .result-box.show { display: block; }
-        
         .result-box.perf-box { background-color: #1c2c3e; border-color: #2a4868; }
 
         .mcdu-string {
@@ -134,17 +164,16 @@
             margin: 5px 0 0 0;
         }
 
-        /* Canvas per il grafico CG */
+        /* Canvas adattato per riempire il pannello destro */
         canvas {
             width: 100%;
-            height: 200px;
+            flex-grow: 1;
+            min-height: 250px;
             background-color: var(--input-bg);
             border-radius: 14px;
-            margin-top: 20px;
-            display: none;
+            display: block;
         }
 
-        /* Tab Bar Inferiore (iOS Style) */
         .tab-bar {
             position: fixed;
             bottom: 0;
@@ -158,6 +187,7 @@
             display: flex;
             justify-content: space-around;
             padding-bottom: env(safe-area-inset-bottom);
+            z-index: 100;
         }
 
         .tab-item {
@@ -174,13 +204,8 @@
         }
 
         .tab-item.active { color: var(--accent); }
+        .tab-icon { font-size: 24px; margin-bottom: 4px; }
 
-        .tab-icon {
-            font-size: 24px;
-            margin-bottom: 4px;
-        }
-
-        /* Grid per le Performance */
         .perf-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -204,70 +229,79 @@
 <body>
 
     <div id="view-trim" class="view active">
-        <div class="efb-card">
-            <h2>Weight & Balance</h2>
-            <div class="input-group">
-                <label>Gross Weight (KG)</label>
-                <input type="number" id="weight" placeholder="es. 168300" onchange="syncWeight()">
-            </div>
-            <div class="input-group">
-                <label>Center of Gravity (CG %)</label>
-                <input type="number" id="cg" placeholder="es. 26.9">
-            </div>
-            <div class="input-group">
-                <label>Flap Setting</label>
-                <div class="flap-selector">
-                    <button class="flap-btn active" onclick="selectFlap('1', this)">1+F</button>
-                    <button class="flap-btn" onclick="selectFlap('2', this)">2</button>
-                    <button class="flap-btn" onclick="selectFlap('3', this)">3</button>
+        <div class="container split-layout">
+            
+            <div class="efb-card left-panel">
+                <h2>Weight & Balance</h2>
+                <div class="input-group">
+                    <label>Gross Weight (KG)</label>
+                    <input type="number" id="weight" placeholder="es. 168300" onchange="syncWeight()">
+                </div>
+                <div class="input-group">
+                    <label>Center of Gravity (CG %)</label>
+                    <input type="number" id="cg" placeholder="es. 26.9" step="0.1">
+                </div>
+                <div class="input-group">
+                    <label>Flap Setting</label>
+                    <div class="flap-selector">
+                        <button class="flap-btn active" onclick="selectFlap('1', this)">1+F</button>
+                        <button class="flap-btn" onclick="selectFlap('2', this)">2</button>
+                        <button class="flap-btn" onclick="selectFlap('3', this)">3</button>
+                    </div>
+                </div>
+                <button class="calc-btn" onclick="calculateTrim()">Calcola Trim</button>
+                
+                <div class="result-box" id="trimResultArea">
+                    <label style="color: var(--success);">MCDU THS SETTING</label>
+                    <p class="mcdu-string" id="mcduResult">1/UP0.0</p>
                 </div>
             </div>
-            <button class="calc-btn" onclick="calculateTrim()">Calcola Trim & CG</button>
-            
-            <div class="result-box" id="trimResultArea">
-                <label style="color: var(--success);">MCDU THS SETTING</label>
-                <p class="mcdu-string" id="mcduResult">1/UP0.0</p>
+
+            <div class="efb-card right-panel">
+                <h2>CG Envelope</h2>
+                <canvas id="cgCanvas"></canvas>
             </div>
-            
-            <canvas id="cgCanvas"></canvas>
+
         </div>
     </div>
 
     <div id="view-perf" class="view">
-        <div class="efb-card">
-            <h2>Take Off Performance</h2>
-            <div class="input-group">
-                <label>Gross Weight (KG)</label>
-                <input type="number" id="perf-weight" placeholder="Sincronizzato dal Trim">
-            </div>
-            <div class="input-group">
-                <label>OAT (Outside Air Temp °C)</label>
-                <input type="number" id="oat" placeholder="es. 15" value="15">
-            </div>
-            
-            <button class="calc-btn" onclick="calculatePerf()">Calcola V-Speeds</button>
-
-            <div class="result-box perf-box" id="perfResultArea">
-                <label style="color: var(--accent);">V-SPEEDS (KIAS)</label>
-                <div class="perf-grid">
-                    <div class="perf-item">
-                        <label>V1</label>
-                        <div class="perf-val" id="val-v1">140</div>
-                    </div>
-                    <div class="perf-item">
-                        <label>VR</label>
-                        <div class="perf-val" id="val-vr">144</div>
-                    </div>
-                    <div class="perf-item">
-                        <label>V2</label>
-                        <div class="perf-val" id="val-v2">148</div>
-                    </div>
+        <div class="container">
+            <div class="efb-card">
+                <h2>Take Off Performance</h2>
+                <div class="input-group">
+                    <label>Gross Weight (KG)</label>
+                    <input type="number" id="perf-weight" placeholder="Sincronizzato dal Trim">
                 </div>
-                <div style="margin-top: 20px; text-align: left;">
-                    <label>Thrust Setting</label>
-                    <p class="mcdu-string" id="thrustResult" style="font-size: 22px; color: var(--warning);">FLX 55°C</p>
-                    <label style="margin-top:10px;">Max Reject Speed</label>
-                    <p class="mcdu-string" id="rejectResult" style="font-size: 18px; color: var(--danger);">V1 - 2 KTS</p>
+                <div class="input-group">
+                    <label>OAT (Outside Air Temp °C)</label>
+                    <input type="number" id="oat" placeholder="es. 15" value="15">
+                </div>
+                
+                <button class="calc-btn" onclick="calculatePerf()">Calcola V-Speeds</button>
+
+                <div class="result-box perf-box" id="perfResultArea">
+                    <label style="color: var(--accent);">V-SPEEDS (KIAS)</label>
+                    <div class="perf-grid">
+                        <div class="perf-item">
+                            <label>V1</label>
+                            <div class="perf-val" id="val-v1">140</div>
+                        </div>
+                        <div class="perf-item">
+                            <label>VR</label>
+                            <div class="perf-val" id="val-vr">144</div>
+                        </div>
+                        <div class="perf-item">
+                            <label>V2</label>
+                            <div class="perf-val" id="val-v2">148</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px; text-align: left;">
+                        <label>Thrust Setting</label>
+                        <p class="mcdu-string" id="thrustResult" style="font-size: 22px; color: var(--warning);">FLX 55°C</p>
+                        <label style="margin-top:10px;">Max Reject Speed</label>
+                        <p class="mcdu-string" id="rejectResult" style="font-size: 18px; color: var(--danger);">V1 - 2 KTS</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -287,7 +321,23 @@
     <script>
         let currentFlap = '1';
 
-        // Navigazione tra le tab
+        // Avvia il grafico vuoto appena la pagina si carica
+        window.onload = function() {
+            drawCGGraph();
+        };
+
+        // Ridisegna il grafico se giri l'iPad (da verticale a orizzontale)
+        window.onresize = function() {
+            let weight = document.getElementById('weight').value;
+            let cg = document.getElementById('cg').value;
+            // Se c'è già un risultato visibile, mantieni il pallino, altrimenti disegnalo vuoto
+            if(document.getElementById('trimResultArea').classList.contains('show') && weight && cg) {
+                drawCGGraph(parseFloat(cg), parseFloat(weight));
+            } else {
+                drawCGGraph();
+            }
+        };
+
         function switchView(viewName) {
             document.getElementById('view-trim').classList.remove('active');
             document.getElementById('view-perf').classList.remove('active');
@@ -296,9 +346,13 @@
 
             document.getElementById('view-' + viewName).classList.add('active');
             document.getElementById('tab-' + viewName).classList.add('active');
+
+            // Trucchetto per ridisegnare bene il canvas quando si torna sulla pagina del trim
+            if(viewName === 'trim') {
+                setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+            }
         }
 
-        // Sincronizza il peso tra le due pagine
         function syncWeight() {
             document.getElementById('perf-weight').value = document.getElementById('weight').value;
         }
@@ -310,7 +364,6 @@
             btn.classList.add('active');
         }
 
-        // --- LOGICA TRIM & GRAFICO ---
         function calculateTrim() {
             let weight = parseFloat(document.getElementById('weight').value);
             let cg = parseFloat(document.getElementById('cg').value);
@@ -327,24 +380,35 @@
             document.getElementById('mcduResult').innerText = `${currentFlap}/${direction}${ths_val}`;
             document.getElementById('trimResultArea').classList.add('show');
 
+            // Disegna il grafico con i dati aggiornati
             drawCGGraph(cg, weight);
         }
 
-        function drawCGGraph(cg, weight) {
+        function drawCGGraph(cg = null, weight = null) {
             let canvas = document.getElementById('cgCanvas');
-            canvas.style.display = "block";
             let ctx = canvas.getContext('2d');
+            
+            // Imposta la risoluzione reale del canvas per evitare sfocature
             let w = canvas.width = canvas.offsetWidth;
-            let h = canvas.height = 200;
+            let h = canvas.height = canvas.offsetHeight;
 
             ctx.clearRect(0, 0, w, h);
 
-            // Mappatura assi: X (CG da 15% a 40%), Y (Peso da 100t a 250t)
             let mapX = (val) => ((val - 15) / 25) * w;
             let mapY = (val) => h - (((val - 100000) / 150000) * h);
 
-            // Disegna Inviluppo di volo (Poligono approssimativo A330)
-            ctx.fillStyle = "rgba(10, 132, 255, 0.2)"; // Azzurro trasparente
+            // Disegna griglia di sfondo leggera
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+            ctx.lineWidth = 1;
+            for(let i=15; i<=40; i+=5) {
+                ctx.beginPath(); ctx.moveTo(mapX(i), 0); ctx.lineTo(mapX(i), h); ctx.stroke();
+            }
+            for(let j=100000; j<=250000; j+=250000) {
+                ctx.beginPath(); ctx.moveTo(0, mapY(j)); ctx.lineTo(w, mapY(j)); ctx.stroke();
+            }
+
+            // Disegna Inviluppo di volo A330
+            ctx.fillStyle = "rgba(10, 132, 255, 0.15)";
             ctx.strokeStyle = "rgba(10, 132, 255, 0.8)";
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -357,50 +421,54 @@
             ctx.fill();
             ctx.stroke();
 
-            // Disegna il punto esatto dell'utente
-            let userX = mapX(cg);
-            let userY = mapY(weight);
-            
-            ctx.fillStyle = "#ff453a"; // Rosso Apple
-            ctx.beginPath();
-            ctx.arc(userX, userY, 6, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Testo sul grafico
+            // Etichette assi
             ctx.fillStyle = "#8e8e93";
-            ctx.font = "10px sans-serif";
+            ctx.font = "12px sans-serif";
             ctx.fillText("FWD", 10, h - 10);
-            ctx.fillText("AFT", w - 25, h - 10);
-            
-            ctx.fillStyle = "#ffffff";
-            ctx.fillText(`CG: ${cg}%`, userX + 10, userY - 10);
+            ctx.fillText("AFT", w - 30, h - 10);
+            ctx.fillText("WEIGHT", 10, 20);
+
+            // Se ci sono i dati, disegna il pallino
+            if (cg !== null && weight !== null) {
+                let userX = mapX(cg);
+                let userY = mapY(weight);
+                
+                ctx.fillStyle = "#ff453a";
+                ctx.beginPath();
+                ctx.arc(userX, userY, 6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Bordo bianco per far risaltare il pallino
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Testo con il valore esatto
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 14px sans-serif";
+                ctx.fillText(`CG: ${cg}%`, userX + 10, userY - 10);
+            }
         }
 
-        // --- LOGICA PERFORMANCE (Stima realistica per simulatore) ---
         function calculatePerf() {
             let wInput = document.getElementById('perf-weight').value;
             let oatInput = document.getElementById('oat').value;
             
-            if (!wInput) { alert("Inserisci il peso prima."); switchView('trim'); return; }
+            if (!wInput) { alert("Inserisci prima il peso."); switchView('trim'); return; }
 
             let weight = parseFloat(wInput);
             let oat = parseFloat(oatInput || 15);
 
-            // Stima V-Speeds (Basata su curve A330)
-            // A 170.000 kg, VR tipica è ~144. Ogni 5000kg aggiunge circa 1 nodo.
             let vr = Math.round(110 + (weight / 5000)); 
-            let v1 = vr - 4; // V1 leggermente inferiore a VR in condizioni dry
-            let v2 = vr + 5; // V2 garantisce margine di sicurezza
+            let v1 = vr - 4; 
+            let v2 = vr + 5; 
             
-            // Limitazioni fisiche per pesi estremi
             if (v1 < 120) { v1 = 120; vr = 125; v2 = 130; }
 
             document.getElementById('val-v1').innerText = v1;
             document.getElementById('val-vr').innerText = vr;
             document.getElementById('val-v2').innerText = v2;
 
-            // Calcolo Flex Temp (Assumiamo pista standard)
-            // Più sei pesante o più fa caldo, più ti avvicini a TOGA (Take Off Go Around)
             let thrustStr = "";
             let rejectStr = `Circa ${v1 - 2} KTS`;
 
@@ -408,7 +476,6 @@
                 thrustStr = "TOGA (Too Heavy)";
                 document.getElementById('thrustResult').style.color = "var(--danger)";
             } else {
-                // Calcolo empirico FLX
                 let flx = Math.round(75 - ((weight - 140000) / 2500) - (oat / 2));
                 if (flx <= oat || flx < 40) {
                     thrustStr = "TOGA (Use Max Thrust)";
